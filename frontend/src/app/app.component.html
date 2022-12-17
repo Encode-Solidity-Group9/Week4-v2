@@ -1,20 +1,20 @@
 <div class="px-4 py-5 my-5 text-center">
   <h1 class="display-5 fw-bold"> My Ballot Example </h1>
-  <div *ngIf="!wallet" class="col-lg-6 mx-auto">
+  <div *ngIf="!walletAddress" class="col-lg-6 mx-auto">
     <p class="lead mb-4"> Hello world  </p>
     <p> To use this ballot you need to connect a wallet</p>
     <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
       <button (click)="createWallet()" type="button" class="btn btn-success btn-lg px-4 gap-3">Create Wallet</button>
       <button type="button" disabled class="btn btn-info btn-lg px-4 gap-3">Import Wallet</button>
-      <button type="button" disabled class="btn btn-danger btn-lg px-4 gap-3">Connect Wallet</button>
+      <button (click)="connectWallet()" type="button"  class="btn btn-danger btn-lg px-4 gap-3">Connect Wallet</button>
       
 
       <!-- <button type="button" class="btn btn-outline-secondary btn-lg px-4">Secondary</button> -->
     </div>
   </div>
-  <div *ngIf="wallet" class="col-lg-6 mx-auto">
-    <p> You are connected to the wallet {{wallet.address}} </p>
-    <p> This application uses the contract address at {{tokenAddress}} </p>
+  <div *ngIf="walletAddress" class="col-lg-6 mx-auto">
+    <p> You are connected to the wallet {{walletAddress}} </p>
+    <p> This application uses the contract address at {{tokenAddress}} inside the {{network | uppercase}} network</p>
     <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
       <div class="card">
         <div class="card-body">
