@@ -13,34 +13,52 @@
     </div>
   </div>
   <div *ngIf="walletAddress" class="col-lg-6 mx-auto">
-    <p> You are connected to the wallet {{walletAddress}} </p>
-    <p> This application uses the contract address at {{tokenAddress}} inside the {{network | uppercase}} network</p>
-    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-      <div class="card">
-        <div class="card-body">
-          My ether balance is: {{etherBalance}}
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-body">
-          My token balance is: {{tokenBalance}}
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-body">
-          My voting power is: {{votePower}}
-        </div>
-      </div>
-      
-
-      <!-- <button type="button" class="btn btn-outline-secondary btn-lg px-4">Secondary</button> -->
+    <div class="border mt-1"> 
+      <p> You are connected to the wallet {{walletAddress}} </p>
+      <p> This application uses the contract address at {{tokenAddress}} inside the {{network | uppercase}} network</p>
     </div>
-    <p> Claim your tokens here! </p>
-    <button (click)="claimTokens()" type="button" class="btn btn-success btn-lg px-4 gap-3">Claim Tokens</button>
-
-    <p> Connect to the ballot here! </p>
-    <input class="form-control mb-4" #ballotContractAddress type="text" placeholder="Paste Contract Address Here"><br />
-    <button (click)="connectBallot(ballotContractAddress.value)" type="button" class="btn btn-success btn-lg px-4 gap-3">Connect Ballot</button>
+    <div class="border mt-1"> 
+      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-1">
+        <div class="card">
+          <div class="card-body">
+            My ether balance is: {{etherBalance}}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            My token balance is: {{tokenBalance}}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            My voting power is: {{votePower}}
+          </div>
+        </div>
+        <!-- <button type="button" class="btn btn-outline-secondary btn-lg px-4">Secondary</button> -->
+      </div>
+      <div *ngIf="walletAddress" class="col-lg-6 mx-auto mt-2 mb-2">
+        <button (click)="updateInfo()" type="button"  class="btn btn-info btn-lg px-4 gap-3">Refresh Balances</button>
+      </div>
+    </div>
+    <div class="border mt-1">
+      <p> Claim your tokens here! </p>
+      <button (click)="claimTokens()" type="button" class="btn btn-success btn-lg px-4 gap-3 mb-3">Claim Tokens</button>
+      <p *ngIf="claimInitialized"> Tokens requested! </p>
+    </div>
+    <div class="border mt-1">
+      <p> Delegate your tokens here! </p>
+      <input class="form-control mb-1" #delegateTo type="text" placeholder="Which address to Delegate"><br />
+      <button (click)="delegate(delegateTo.value)" type="button" class="btn btn-success btn-lg px-4 gap-3 mb-3">Delegate Tokens</button>
+      <p *ngIf="delegated"> Tokens delegated to {{delegateAddress}} ! </p>
+    </div>
+    <div class="border mt-1">
+      <p class="pt-10"> Connect to the ballot here! </p>
+      <input class="form-control mb-1" #ballotContractAddress type="text" placeholder="Paste Contract Address Here"><br />
+      <button (click)="connectBallot(ballotContractAddress.value)" type="button" class="btn btn-success btn-lg px-4 gap-3 mb-3">Connect Ballot</button>
+    </div>
+    
   </div>
+  
+  
 </div>
 

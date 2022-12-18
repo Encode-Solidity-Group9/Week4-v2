@@ -29,8 +29,10 @@ export class AppComponent {
   etherBalance: number | undefined;
   tokenBalance: number | undefined;
   votePower: number | undefined;
+  claimInitialized: boolean = false;
 
-  
+  delegated = false;
+  delegateAddress: string = "";
   
 
   constructor(private http: HttpClient) {
@@ -38,6 +40,7 @@ export class AppComponent {
     this.network = "sepolia";    
     this.http.get<any>('http://localhost:3000/token-address').subscribe((data) => {
       this.tokenAddress = data.result;
+      console.log("token address: " + this.tokenAddress);
     });
     
   }
@@ -52,57 +55,44 @@ export class AppComponent {
     }
   }
 
-  // connectWallet() {
-  //   if (window.ethereum) {
-  //     this.web3 = new Web3(window.ethereum);
-  //     try {
-  //       window.ethereum.enable().then(() => {
-  //         // MetaMask is now enabled
-  //         console.log("metamask is enabled");
-  //       });
-  //     } catch (error) {
-  //       // MetaMask was rejected by the user
-  //       console.log("metamask was rejected");
-  //     }
-  //   } else if (window.web3) {
-  //     this.web3 = new Web3(window.web3.currentProvider);
-  //     console.log("window web3");
-  //   } else {
-  //     // MetaMask is not available
-  //     console.log("metamask is not available");
-  //   }
-  //   console.log(this.web3?.currentProvider);
-  //   if (this.web3){
-  //     this.web3.eth.getAccounts((error, accounts) => {
-  //       if (error) {
-  //         console.error(error);
-  //       } else {
-  //         this.walletAddress = accounts[0];
-  //         console.log(`Account is ${accounts[0]}`);  // Array of Ethereum addresses
-  //       }
-  //     });
-  //   }
-  // }
+
 
   async connectWallet(){
     // window.ethereum.setNetwork(12);
-    this.providerWeb3 = new ethers.providers.Web3Provider(window.ethereum, "any");
-    this.providerWeb3.getNetwork().then((network) => {
-      console.log("Network:" + network.name);
-      if (network.name != "sepolia"){
-        this.switchNetwork();
-      }
-    });
-
-    this.signer = this.providerWeb3.getSigner();
-    this.signer.getAddress().then((address) => {
-      this.walletAddress = address;
-      console.log("connected to wallet: " + address);
-    });
-    if (this.tokenAddress) {
-      this.tokenContract = new ethers.Contract(this.tokenAddress, tokenJson.abi, this.signer);
-    }
     
+    if (window.ethereum) {
+      this.providerWeb3 = new ethers.providers.Web3Provider(window.ethereum, "any");
+        try {
+          window.ethereum.enable().then(() => {
+            // MetaMask is now enabled
+            console.log("metamask is enabled");
+          });
+        } catch (error) {
+          // MetaMask was rejected by the user
+          console.log("metamask was rejected");
+        }
+        this.providerWeb3.getNetwork().then((network) => {
+          console.log("Network:" + network.name);
+          if (network.name != this.network){
+            this.switchNetwork();
+          }
+        });
+    
+        this.signer = this.providerWeb3.getSigner();
+        this.signer.getAddress().then((address) => {
+          this.walletAddress = address;
+          console.log("connected to wallet: " + address);
+          this.updateInfo();
+        });
+        if (this.tokenAddress) {
+          this.tokenContract = new ethers.Contract(this.tokenAddress, tokenJson.abi, this.signer);
+        }
+      } 
+    else {
+        // MetaMask is not available
+        console.log("metamask is not available");
+    }
+    // this.updateInfo();
   }
   
 
@@ -136,10 +126,11 @@ export class AppComponent {
           console.log("Error:" + addError);
         }
       }
+      console.log("error switching network");
     }
   }
 
-  private updateInfo() {
+  updateInfo() {
     if (this.wallet){
       this.wallet.getBalance().then((balanceBN: ethers.BigNumberish) => {
         this.etherBalance = parseFloat(ethers.utils.formatEther(balanceBN));
@@ -153,6 +144,19 @@ export class AppComponent {
         });
       }
     }
+    else if (this.signer) {
+      this.signer.getBalance().then((balanceBN: ethers.BigNumberish) => {
+        this.etherBalance = parseFloat(ethers.utils.formatEther(balanceBN));
+      });
+      if (this.tokenContract){
+        this.tokenContract["balanceOf"](this.walletAddress).then((balanceBN: ethers.BigNumberish) => {
+          this.tokenBalance = parseFloat(ethers.utils.formatEther(balanceBN));
+        });
+        this.tokenContract["getVotes"](this.walletAddress).then((votesBN: ethers.BigNumberish) => {
+          this.votePower = parseFloat(ethers.utils.formatEther(votesBN));
+        });
+      }
+    }
   }
 
   importWallet(privatekey: string) {
@@ -160,26 +164,44 @@ export class AppComponent {
   }
 
   claimTokens() {
-    this.http.post<any>('http://localhost:3000/claim-tokens', {
-      "address": this.wallet?.address
-    }).subscribe((data) => {
-      const txHash = data.result;
-      if (this.provider){
-        this.provider.getTransaction(txHash).then((tx) => {
-          tx.wait().then((receipt) => {
-            // TODO: optional display
-            // reload info by calling the 
+    if (this.walletAddress) {
+      console.error("requesting tokens for " + this.walletAddress);
+
+      this.claimInitialized = true;
+      this.http.post<any>('http://localhost:3000/claim-tokens', {
+        "address": this.walletAddress
+      }).subscribe((data) => {
+        const txHash = data.result;
+        if (this.provider){
+          this.provider.getTransaction(txHash).then((tx) => {
+            tx.wait().then((receipt) => {
+              // TODO: optional display
+              // reload info by calling the 
+              this.updateInfo();
+            });
+          console.log(data);
           });
-        console.log(data);
-        });
-      }
-    });
+        }
+      });
+    }
+    else {
+      // console.log("no wallet connected");
+      console.error("no wallet connected");
+    }
   }
 
   connectBallot(address: string) {
   }
 
-  delegate() {
+  async delegate(delegateTo: string) {
+    if (this.tokenContract) {
+      let tx = await this.tokenContract["delegate"](delegateTo);
+      console.log(`\nTransaction Hash: ${tx.hash}`);
+      await tx.wait();
+      this.delegated = true;
+      this.delegateAddress = delegateTo;
+      this.updateInfo();
+    }
   }
 
   castVote() {
@@ -188,3 +210,4 @@ export class AppComponent {
   getBallotInfo() {
   }
 }
+
