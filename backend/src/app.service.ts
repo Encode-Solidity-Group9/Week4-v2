@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 
 
 const TOKENIZED_VOTES_ADDRESS = "0xBDABC9564886E68D3d57faec9B2E8C53F12F612F";
-const BALLOT_ADDRESS = "";
+const BALLOT_ADDRESS = null;
 
 @Injectable()
 export class AppService {
@@ -24,7 +24,20 @@ export class AppService {
     // TODO: await the transaction get the receipt return the has
     // TODO: 
     // TODO: 
-    return {result: `Claiming tokens for ${address}`};
+    const privateKey = this.configService.get<string>('PRIVATE_KEY');
+
+    const wallet = new ethers.Wallet(privateKey);
+    const signer = wallet.connect(this.provider);
+    const tokenContract = new ethers.Contract(TOKENIZED_VOTES_ADDRESS, tokenJson.abi, signer);
+    const mintAmount = ethers.utils.parseEther("10");
+    let tx = await tokenContract.mint(address, mintAmount);
+
+    // let tx = await tokenContract.mint(addressTo, TOKEN_MINT_VALUE);
+    
+    await tx.wait();
+    console.log(`\nTransaction Hash: ${tx.hash}`);
+    return {result: tx.hash};
+    // return {result: `Claiming tokens for ${address}. Transaction Hash: ${tx.hash}`};
   }
 
   async getTokenAddress() {
@@ -35,19 +48,7 @@ export class AppService {
     return {result: BALLOT_ADDRESS};
   }
 
-  async mintToAddress(address: string) {
-    const privateKey = this.configService.get<string>('PRIVATE_KEY');
-
-    const wallet = new ethers.Wallet(privateKey);
-    const signer = wallet.connect(this.provider);
-    const tokenContract = new ethers.Contract(TOKENIZED_VOTES_ADDRESS, tokenJson.abi, signer);
-    const mintAmount = ethers.utils.parseEther("10");
-    const tx = tokenContract.mint(address, mintAmount);
-
-    // let tx = await tokenContract.mint(addressTo, TOKEN_MINT_VALUE);
-    console.log(`\nTransaction Hash: ${tx.hash}`);
-    await tx.wait();
+  async getBallotChoices() {
   }
-
 
 }
