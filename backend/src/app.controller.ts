@@ -24,6 +24,16 @@ export class AppController {
     return this.appService.getBallotAddress();
   }
 
+  @Get('ballot-proposals')
+  getBallotProposals() {
+    return this.appService.getBallotProposals();
+  }
+
+  @Get('winner')
+  getWinner() {
+    return this.appService.getWinner();
+  }
+
   @Post("claim-tokens")
   claimPaymentOrder(@Body() body: claimTokensDto) {
     return this.appService.claimTokens(body.address);
