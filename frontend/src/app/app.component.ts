@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { ethers } from 'ethers';
 import tokenJson from '../assets/MyToken.json'
+import ballotJson from '../assets/Ballot.json'
 import { HttpClient } from '@angular/common/http';
 import Web3 from 'web3';
 
 // const TOKENIZED_VOTES_ADDRESS = "0xF9de83d41e68d3a15b98Cf3d4656eaf4CF3Aac8B";
 declare let window: any;
-
+const NETWORK = "sepolia";
 
 @Component({
   selector: 'app-root',
@@ -18,12 +19,14 @@ export class AppComponent {
   provider: ethers.providers.Provider | undefined;
   providerWeb3 : ethers.providers.Web3Provider | undefined;
   tokenAddress: string | undefined;
+  ballotAddress: string | undefined;
   wallet: ethers.Wallet | undefined;
   signer: ethers.providers.JsonRpcSigner | undefined;
   web3: Web3 | undefined;
   walletAddress: string | undefined;
 
   tokenContract: ethers.Contract | undefined;
+  ballotContract: ethers.Contract | undefined;
   network: string;
 
   etherBalance: number | undefined;
@@ -33,26 +36,42 @@ export class AppComponent {
 
   delegated = false;
   delegateAddress: string = "";
+
+  voted = false;
+  votedProposal: string = "";
+
+  proposals: string[] = [];
+  winner: string | undefined;
   
 
   constructor(private http: HttpClient) {
     // this.wallet = new ethers.Wallet('0x0123456789012345678901234567890123456789012345678901234567890123');
-    this.network = "sepolia";    
+    this.network = NETWORK;    
     this.http.get<any>('http://localhost:3000/token-address').subscribe((data) => {
       this.tokenAddress = data.result;
       console.log("token address: " + this.tokenAddress);
     });
-    
+    this.http.get<any>('http://localhost:3000/ballot-address').subscribe((data) => {
+      this.ballotAddress = data.result;
+      console.log("ballot address: " + this.ballotAddress);
+    });
+
+    this.http.get<any>('http://localhost:3000/ballot-proposals').subscribe((data) => {
+      this.proposals = data.result;
+      console.log("Proposals: " + this.proposals);
+    });
   }
 
   createWallet() {
-    if (this.tokenAddress) {
-      this.provider = ethers.getDefaultProvider(this.network);
-      this.wallet = ethers.Wallet.createRandom().connect(this.provider);
-      this.walletAddress = this.wallet.address;
-      this.tokenContract = new ethers.Contract(this.tokenAddress, tokenJson.abi, this.wallet);
-      this.updateInfo();
-    }
+    throw new Error('Method not implemented.');
+    // if (this.tokenAddress) {
+    //   this.provider = ethers.getDefaultProvider(this.network);
+    //   this.wallet = ethers.Wallet.createRandom().connect(this.provider);
+    //   this.walletAddress = this.wallet.address;
+    //   this.tokenContract = new ethers.Contract(this.tokenAddress, tokenJson.abi, this.wallet);
+    //   this.ballotContract = new ethers.Contract(this.ballotAddress, ballotJson.abi, this.wallet);
+    //   this.updateInfo();
+    // }
   }
 
 
@@ -86,6 +105,9 @@ export class AppComponent {
         });
         if (this.tokenAddress) {
           this.tokenContract = new ethers.Contract(this.tokenAddress, tokenJson.abi, this.signer);
+        }
+        if (this.ballotAddress) {
+          this.ballotContract = new ethers.Contract(this.ballotAddress, ballotJson.abi, this.signer);
         }
       } 
     else {
@@ -204,10 +226,35 @@ export class AppComponent {
     }
   }
 
-  castVote() {
+  async castVote(votedProposalIndex: string, voteAmountStr: string) {
+    console.log("cast vote: " + votedProposalIndex);
+    this.voted = true;
+    this.votedProposal = this.proposals[Number(votedProposalIndex)];
+    const voteAmount = ethers.utils.parseUnits(voteAmountStr, "ether");
+    if (this.ballotContract && this.tokenContract) {
+      // const voteAmount = (await this.tokenContract["getVotes"](this.walletAddress)) / 2;
+      console.log("voting with " + voteAmount + " votes");
+      console.log("voting for " + this.votedProposal)
+      let tx = await this.ballotContract["vote"](votedProposalIndex, voteAmount);
+      console.log(`\nTransaction Hash: ${tx.hash}`);
+      await tx.wait();
+      this.updateInfo();
+    }
+    
+    
   }
 
-  getBallotInfo() {
+  getWinner() {
+    // if (this.ballotContract) {
+    //   this.ballotContract["winnerName"]().then((winnerName: string) => {
+    //     this.winner = winnerName;
+    //   });
+    // }
+    this.http.get<any>('http://localhost:3000/winner').subscribe((data) => {
+      this.winner = data.result;
+      console.log("winner is: " + this.winner);
+    });
+    
   }
 }
 
